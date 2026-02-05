@@ -1,0 +1,176 @@
+{
+  "id": "sales-dashboard",
+  "title": "Sales Analytics Dashboard",
+  "description": "Comprehensive overview of sales performance and key metrics",
+  
+  "globalFilters": [
+    {
+      "id": "start_date",
+      "type": "daterange",
+      "label": "Start Date",
+      "default": "2024-01-01",
+      "applyTo": "*"
+    },
+    {
+      "id": "end_date",
+      "type": "daterange",
+      "label": "End Date",
+      "default": "2024-12-31",
+      "applyTo": "*"
+    }
+  ],
+  
+  "layout": {
+    "type": "grid",
+    "columns": 12,
+    "gap": 16
+  },
+  
+  "widgets": [
+    {
+      "id": "total_revenue",
+      "type": "metric-card",
+      "position": { "x": 0, "y": 0, "w": 3, "h": 2 },
+      "title": "Total Revenue",
+      "queryId": "sales_overview",
+      "dataMapping": {
+        "value": "SUM(total_revenue)"
+      },
+      "format": {
+        "type": "currency",
+        "currency": "USD"
+      },
+      "icon": "dollar",
+      "color": "green"
+    },
+    
+    {
+      "id": "total_orders",
+      "type": "metric-card",
+      "position": { "x": 3, "y": 0, "w": 3, "h": 2 },
+      "title": "Total Orders",
+      "queryId": "sales_overview",
+      "dataMapping": {
+        "value": "SUM(order_count)"
+      },
+      "format": {
+        "type": "number",
+        "notation": "compact"
+      },
+      "icon": "chart",
+      "color": "blue"
+    },
+    
+    {
+      "id": "unique_customers",
+      "type": "metric-card",
+      "position": { "x": 6, "y": 0, "w": 3, "h": 2 },
+      "title": "Unique Customers",
+      "queryId": "sales_overview",
+      "dataMapping": {
+        "value": "SUM(unique_customers)"
+      },
+      "format": {
+        "type": "number"
+      },
+      "icon": "users",
+      "color": "purple"
+    },
+    
+    {
+      "id": "avg_order_value",
+      "type": "metric-card",
+      "position": { "x": 9, "y": 0, "w": 3, "h": 2 },
+      "title": "Avg Order Value",
+      "queryId": "sales_overview",
+      "dataMapping": {
+        "value": "AVG(avg_order_value)"
+      },
+      "format": {
+        "type": "currency",
+        "currency": "USD"
+      },
+      "icon": "chart",
+      "color": "yellow"
+    },
+    
+    {
+      "id": "revenue_trend",
+      "type": "line-chart",
+      "position": { "x": 0, "y": 2, "w": 8, "h": 4 },
+      "title": "Revenue Trend",
+      "queryId": "sales_overview",
+      "dataMapping": {
+        "x": "date",
+        "y": "total_revenue"
+      },
+      "chartOptions": {
+        "smooth": true,
+        "showArea": true,
+        "colors": ["#3b82f6"],
+        "yAxis": {
+          "format": "currency",
+          "currency": "USD"
+        }
+      }
+    },
+    
+    {
+      "id": "revenue_by_region",
+      "type": "bar-chart",
+      "position": { "x": 8, "y": 2, "w": 4, "h": 4 },
+      "title": "Revenue by Region",
+      "queryId": "revenue_by_region",
+      "dataMapping": {
+        "x": "region",
+        "y": "total_revenue"
+      },
+      "chartOptions": {
+        "colors": ["#10b981"]
+      }
+    },
+    
+    {
+      "id": "top_products",
+      "type": "data-table",
+      "position": { "x": 0, "y": 6, "w": 12, "h": 4 },
+      "title": "Top Products",
+      "queryId": "top_products",
+      "columns": [
+        {
+          "field": "product_name",
+          "header": "Product",
+          "sortable": true
+        },
+        {
+          "field": "category",
+          "header": "Category",
+          "sortable": true
+        },
+        {
+          "field": "units_sold",
+          "header": "Units Sold",
+          "sortable": true,
+          "align": "right",
+          "format": {
+            "type": "number"
+          }
+        },
+        {
+          "field": "total_revenue",
+          "header": "Revenue",
+          "sortable": true,
+          "align": "right",
+          "format": {
+            "type": "currency",
+            "currency": "USD"
+          }
+        }
+      ],
+      "options": {
+        "pageSize": 10,
+        "exportable": true
+      }
+    }
+  ]
+}

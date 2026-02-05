@@ -1,0 +1,15 @@
+Project Statistics:
+==================
+
+Total Files: 44
+Python Files: 7
+Vue Files: 8
+JavaScript Files: 8
+YAML Config Files: 1
+JSON Config Files: 2
+Documentation Files: 6
+
+Lines of Code:
+=============
+Python: 606
+Vue/JavaScript: 1210
