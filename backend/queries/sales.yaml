@@ -1,0 +1,151 @@
+queries:
+  # Sales Overview Query - SQLite compatible
+  sales_overview:
+    description: "Get daily sales overview with revenue and order counts"
+    sql: |
+      SELECT 
+        DATE(order_date) as date,
+        SUM(amount) as total_revenue,
+        COUNT(DISTINCT order_id) as order_count,
+        COUNT(DISTINCT customer_id) as unique_customers,
+        AVG(amount) as avg_order_value
+      FROM orders
+      WHERE order_date >= :start_date 
+        AND order_date <= :end_date
+        AND status = 'completed'
+      GROUP BY DATE(order_date)
+      ORDER BY date DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "30_days_ago"
+        description: "Start date for analysis"
+      - name: end_date
+        type: date
+        default: "today"
+        description: "End date for analysis"
+    cache_ttl: 300
+
+  # Revenue by Region - SQLite compatible
+  revenue_by_region:
+    description: "Revenue breakdown by geographic region"
+    sql: |
+      SELECT 
+        c.region,
+        SUM(o.amount) as total_revenue,
+        COUNT(DISTINCT o.order_id) as order_count,
+        COUNT(DISTINCT o.customer_id) as customer_count,
+        AVG(o.amount) as avg_order_value
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.customer_id
+      WHERE o.order_date >= :start_date 
+        AND o.status = 'completed'
+      GROUP BY c.region
+      ORDER BY total_revenue DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "30_days_ago"
+    cache_ttl: 600
+
+  # Top Products - SQLite compatible
+  top_products:
+    description: "Top selling products by revenue"
+    sql: |
+      SELECT 
+        p.product_name,
+        p.category,
+        COUNT(DISTINCT oi.order_id) as order_count,
+        SUM(oi.quantity) as units_sold,
+        SUM(oi.quantity * oi.unit_price) as total_revenue,
+        AVG(oi.unit_price) as avg_price
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.product_id
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE o.order_date >= :start_date
+        AND o.status = 'completed'
+      GROUP BY p.product_name, p.category
+      ORDER BY total_revenue DESC
+      LIMIT :limit
+    parameters:
+      - name: start_date
+        type: date
+        default: "30_days_ago"
+      - name: limit
+        type: int
+        default: 10
+    cache_ttl: 300
+
+  # Customer Summary - SQLite compatible
+  customer_summary:
+    description: "Detailed customer information and metrics"
+    sql: |
+      SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        c.region,
+        COUNT(DISTINCT o.order_id) as total_orders,
+        SUM(o.amount) as total_revenue,
+        AVG(o.amount) as avg_order_value,
+        MAX(o.order_date) as last_order_date,
+        MIN(o.order_date) as first_order_date
+      FROM customers c
+      LEFT JOIN orders o ON c.customer_id = o.customer_id
+        AND o.status = 'completed'
+      WHERE o.order_date >= :start_date 
+        OR o.order_date IS NULL
+      GROUP BY c.customer_id, c.customer_name, c.email, c.region
+      ORDER BY total_revenue DESC
+      LIMIT :limit
+    parameters:
+      - name: start_date
+        type: date
+        default: "90_days_ago"
+      - name: limit
+        type: int
+        default: 100
+    cache_ttl: 600
+
+  # Monthly Revenue Trend - SQLite compatible
+  monthly_revenue_trend:
+    description: "Monthly revenue trend for the past year"
+    sql: |
+      SELECT 
+        STRFTIME('%Y-%m', order_date) as month,
+        SUM(amount) as revenue,
+        COUNT(DISTINCT order_id) as orders,
+        COUNT(DISTINCT customer_id) as customers
+      FROM orders
+      WHERE order_date >= :start_date
+        AND status = 'completed'
+      GROUP BY STRFTIME('%Y-%m', order_date)
+      ORDER BY month ASC
+    parameters:
+      - name: start_date
+        type: date
+        default: "365_days_ago"
+    cache_ttl: 3600
+
+  # Sales by Category - SQLite compatible
+  sales_by_category:
+    description: "Sales breakdown by product category"
+    sql: |
+      SELECT 
+        p.category,
+        COUNT(DISTINCT oi.order_id) as order_count,
+        SUM(oi.quantity) as units_sold,
+        SUM(oi.quantity * oi.unit_price) as revenue,
+        AVG(oi.unit_price) as avg_price
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.product_id
+      JOIN orders o ON oi.order_id = o.order_id
+      WHERE o.order_date >= :start_date
+        AND o.status = 'completed'
+      GROUP BY p.category
+      ORDER BY revenue DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "30_days_ago"
+    cache_ttl: 300
