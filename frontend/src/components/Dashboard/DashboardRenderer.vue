@@ -101,7 +101,7 @@
         <div class="grid-stack-item-content">
           <div class="card h-full flex flex-col">
             <!-- Widget Header -->
-            <div class="widget-header flex justify-between items-center mb-4 p-2 rounded" 
+            <div class="widget-header flex justify-between items-center mb-2 p-2 rounded flex-shrink-0" 
                  :class="{ 'cursor-move bg-gray-50': editMode }">
               <div class="flex items-center gap-2">
                 <svg v-if="editMode" class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -123,9 +123,10 @@
             </div>
 
             <!-- Widget Content -->
-            <div class="widget-content flex-1 overflow-auto">
+            <div class="widget-content flex-1">
               <component
                 :is="getWidgetComponent(widget.type)"
+                :key="`${widget.id}-${widgetRenderKey[widget.id] || 0}`"
                 :config="widget"
                 :data="widgetData[widget.id]"
                 :loading="widgetLoading[widget.id]"
@@ -167,6 +168,7 @@ const filters = ref({})
 const widgetData = ref({})
 const widgetLoading = ref({})
 const widgetErrors = ref({})
+const widgetRenderKey = ref({})
 const editMode = ref(false)
 const gridContainer = ref(null)
 
@@ -178,8 +180,10 @@ onMounted(async () => {
   await loadDashboardConfig()
   initializeFilters()
   await nextTick()
-  await nextTick() // Double nextTick to ensure DOM is ready
-  initializeGrid()
+  await nextTick() // Double nextTick for GridStack
+  await initializeGrid()
+  // Wait for grid to be fully rendered
+  await new Promise(resolve => setTimeout(resolve, 100))
   await loadAllWidgets()
 })
 
@@ -224,7 +228,7 @@ const loadDashboardConfig = async () => {
   }
 }
 
-const initializeGrid = () => {
+const initializeGrid = async () => {
   if (!gridContainer.value || !config.value?.widgets) return
 
   try {
@@ -248,6 +252,15 @@ const initializeGrid = () => {
     grid.on('change', (event, items) => {
       if (editMode.value && items && items.length > 0) {
         saveLayout(items)
+      }
+    })
+    
+    // Listen to resize end to trigger chart re-render
+    grid.on('resizestop', (event, element) => {
+      const widgetId = element.getAttribute('gs-id')
+      if (widgetId) {
+        // Force widget to re-render
+        widgetRenderKey.value[widgetId] = (widgetRenderKey.value[widgetId] || 0) + 1
       }
     })
     
@@ -299,8 +312,12 @@ const initializeFilters = () => {
 const loadAllWidgets = async () => {
   if (!config.value?.widgets) return
   
-  const promises = config.value.widgets.map(widget => loadWidgetData(widget.id))
-  await Promise.all(promises)
+  // Load widgets sequentially to ensure proper rendering
+  for (const widget of config.value.widgets) {
+    await loadWidgetData(widget.id)
+    // Small delay to ensure DOM updates
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
 }
 
 const loadWidgetData = async (widgetId) => {
@@ -314,8 +331,14 @@ const loadWidgetData = async (widgetId) => {
     const params = buildQueryParams(widget)
     const result = await executeQuery(widget.queryId, params)
     
+    console.log(`Widget ${widgetId} data:`, result.data)
+    
     const transformedData = transformData(result.data, widget.dataMapping)
     widgetData.value[widgetId] = transformedData
+    
+    // Trigger re-render after data loads
+    await nextTick()
+    widgetRenderKey.value[widgetId] = (widgetRenderKey.value[widgetId] || 0) + 1
     
   } catch (error) {
     console.error(`Error loading widget ${widgetId}:`, error)
@@ -393,6 +416,22 @@ const refreshAllWidgets = () => {
   background-color: #f3f4f6;
 }
 
+/* Widget Content - CRITICAL for charts */
+.widget-content {
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure chart containers get full size */
+.widget-content > div {
+  flex: 1;
+  min-height: 250px;
+}
+
 /* Resize Handles Styling */
 .ui-resizable-handle {
   position: absolute;
@@ -449,11 +488,6 @@ const refreshAllWidgets = () => {
   bottom: 0;
   background: linear-gradient(45deg, transparent 50%, #3b82f6 50%);
   border-radius: 0 0 0 0.5rem;
-}
-
-/* Widget Content Scrolling */
-.widget-content {
-  min-height: 0;
 }
 
 .dashboard-container {

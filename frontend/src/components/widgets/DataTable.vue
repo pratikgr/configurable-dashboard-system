@@ -8,6 +8,10 @@
       Error: {{ error }}
     </div>
     
+    <div v-else-if="!data || data.length === 0" class="text-gray-500 p-4 text-center">
+      No data available
+    </div>
+    
     <div v-else class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -69,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { formatValue } from '@/utils/dataTransformers'
 
 const props = defineProps({
@@ -98,6 +102,11 @@ const pageSize = computed(() => props.config.options?.pageSize || 20)
 
 const columns = computed(() => {
   return props.config.columns || []
+})
+
+onMounted(() => {
+  console.log('DataTable mounted with data:', props.data?.length, 'rows')
+  console.log('Columns:', columns.value)
 })
 
 const sortedData = computed(() => {
@@ -162,3 +171,10 @@ const formatCellValue = (value, format) => {
   return formatValue(value, format)
 }
 </script>
+
+<style scoped>
+.data-table-widget {
+  width: 100%;
+  height: 100%;
+}
+</style>

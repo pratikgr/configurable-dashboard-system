@@ -8,12 +8,16 @@
       Error: {{ error }}
     </div>
     
-    <div v-else ref="chartContainer" class="w-full h-80"></div>
+    <div v-else-if="!data || !data.xAxis || !data.series" class="text-gray-500 p-4 text-center">
+      No data available
+    </div>
+    
+    <div v-else ref="chartContainer" class="chart-container"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 const props = defineProps({
@@ -25,54 +29,159 @@ const props = defineProps({
 
 const chartContainer = ref(null)
 let chartInstance = null
+let resizeObserver = null
 
-onMounted(() => {
-  if (chartContainer.value) {
-    chartInstance = echarts.init(chartContainer.value)
-    renderChart()
-  }
+onMounted(async () => {
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  initChart()
 })
 
-watch(() => props.data, renderChart, { deep: true })
+onUnmounted(() => {
+  cleanup()
+})
 
-const renderChart = async () => {
-  if (!chartInstance || !props.data) return
+watch(() => props.data, async () => {
   await nextTick()
+  renderChart()
+}, { deep: true })
 
-  const { xAxis, series } = props.data
-  const { chartOptions = {} } = props.config
+const initChart = () => {
+  if (!chartContainer.value) {
+    console.warn('Chart container not found')
+    return
+  }
+  
+  // Wait for container to have size
+  const checkSize = () => {
+    const width = chartContainer.value?.clientWidth
+    const height = chartContainer.value?.clientHeight
+    
+    console.log('BarChart container size:', { width, height })
+    
+    if (!width || !height || width === 0 || height === 0) {
+      console.warn('Container has no size, retrying...')
+      setTimeout(checkSize, 100)
+      return
+    }
+    
+    try {
+      chartInstance = echarts.init(chartContainer.value)
+      renderChart()
+      
+      // Setup resize observer
+      setupResizeObserver()
+      
+    } catch (error) {
+      console.error('Error initializing chart:', error)
+    }
+  }
+  
+  checkSize()
+}
 
-  chartInstance.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' }
-    },
-    legend: {
-      data: series.map(s => s.name),
-      bottom: 0
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: xAxis,
-      axisLabel: { rotate: 45 }
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: series.map((s, i) => ({
-      name: s.name,
-      type: 'bar',
-      data: s.data,
-      itemStyle: {
-        color: chartOptions.colors?.[i]
-      }
-    }))
+const setupResizeObserver = () => {
+  if (!chartContainer.value || !window.ResizeObserver) return
+  
+  resizeObserver = new ResizeObserver(() => {
+    if (chartInstance) {
+      chartInstance.resize()
+    }
   })
+  
+  resizeObserver.observe(chartContainer.value)
+}
+
+const renderChart = () => {
+  if (!chartInstance || !props.data || !props.data.xAxis || !props.data.series) {
+    console.warn('Cannot render chart:', { 
+      hasInstance: !!chartInstance, 
+      hasData: !!props.data,
+      hasXAxis: !!props.data?.xAxis,
+      hasSeries: !!props.data?.series
+    })
+    return
+  }
+
+  try {
+    const { xAxis, series } = props.data
+    const { chartOptions = {} } = props.config
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' }
+      },
+      legend: {
+        data: series.map(s => s.name),
+        bottom: 10
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: xAxis,
+        axisLabel: { 
+          rotate: 45,
+          fontSize: 10
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          fontSize: 10,
+          formatter: (value) => {
+            return '$' + (value / 1000).toFixed(0) + 'k'
+          }
+        }
+      },
+      series: series.map((s, i) => ({
+        name: s.name,
+        type: 'bar',
+        data: s.data,
+        itemStyle: {
+          color: chartOptions.colors?.[i] || undefined
+        }
+      }))
+    }
+
+    chartInstance.setOption(option, true)
+    console.log('BarChart rendered successfully')
+  } catch (error) {
+    console.error('Error rendering chart:', error)
+  }
+}
+
+const cleanup = () => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+  
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
 }
 </script>
+
+<style scoped>
+.bar-chart-widget {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+}
+</style>

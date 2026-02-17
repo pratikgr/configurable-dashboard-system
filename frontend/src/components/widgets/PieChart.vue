@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 const props = defineProps({
@@ -26,46 +26,87 @@ const props = defineProps({
 const chartContainer = ref(null)
 let chartInstance = null
 
-onMounted(() => {
-  if (chartContainer.value) {
-    chartInstance = echarts.init(chartContainer.value)
-    renderChart()
+onMounted(async () => {
+  await nextTick()
+  initChart()
+})
+
+onUnmounted(() => {
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
   }
 })
 
-watch(() => props.data, renderChart, { deep: true })
-
-const renderChart = async () => {
-  if (!chartInstance || !props.data) return
+watch(() => props.data, async () => {
   await nextTick()
+  renderChart()
+}, { deep: true })
 
-  const { dataMapping } = props.config
-  const pieData = props.data.map(row => ({
-    name: row[dataMapping.name],
-    value: row[dataMapping.value]
-  }))
+const initChart = () => {
+  if (!chartContainer.value) return
+  
+  try {
+    chartInstance = echarts.init(chartContainer.value)
+    renderChart()
+  } catch (error) {
+    console.error('Error initializing chart:', error)
+  }
+}
 
-  chartInstance.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left'
-    },
-    series: [{
-      type: 'pie',
-      radius: '50%',
-      data: pieData,
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)'
+const renderChart = () => {
+  if (!chartInstance || !props.data || !Array.isArray(props.data)) return
+
+  try {
+    const { dataMapping } = props.config
+    
+    const pieData = props.data.map(row => ({
+      name: row[dataMapping.name],
+      value: row[dataMapping.value]
+    }))
+
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left'
+      },
+      series: [{
+        type: 'pie',
+        radius: '50%',
+        data: pieData,
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
         }
-      }
-    }]
+      }]
+    }
+
+    chartInstance.setOption(option, true)
+  } catch (error) {
+    console.error('Error rendering chart:', error)
+  }
+}
+
+// Handle window resize
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    if (chartInstance) {
+      chartInstance.resize()
+    }
   })
 }
 </script>
+
+<style scoped>
+.pie-chart-widget {
+  width: 100%;
+  height: 100%;
+}
+</style>
