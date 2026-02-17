@@ -15,7 +15,7 @@
       "id": "end_date",
       "type": "daterange",
       "label": "End Date",
-      "default": "2024-12-31",
+      "default": "2026-12-31",
       "applyTo": "*"
     }
   ],
