@@ -2,7 +2,6 @@
   "id": "sales-dashboard",
   "title": "Sales Analytics Dashboard",
   "description": "Comprehensive overview of sales performance and key metrics",
-  
   "globalFilters": [
     {
       "id": "start_date",
@@ -19,18 +18,21 @@
       "applyTo": "*"
     }
   ],
-  
   "layout": {
     "type": "grid",
     "columns": 12,
     "gap": 16
   },
-  
   "widgets": [
     {
       "id": "total_revenue",
       "type": "metric-card",
-      "position": { "x": 0, "y": 0, "w": 3, "h": 2 },
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 2
+      },
       "title": "Total Revenue",
       "queryId": "sales_overview",
       "dataMapping": {
@@ -43,11 +45,15 @@
       "icon": "dollar",
       "color": "green"
     },
-    
     {
       "id": "total_orders",
       "type": "metric-card",
-      "position": { "x": 3, "y": 0, "w": 3, "h": 2 },
+      "position": {
+        "x": 3,
+        "y": 0,
+        "w": 3,
+        "h": 2
+      },
       "title": "Total Orders",
       "queryId": "sales_overview",
       "dataMapping": {
@@ -60,11 +66,15 @@
       "icon": "chart",
       "color": "blue"
     },
-    
     {
       "id": "unique_customers",
       "type": "metric-card",
-      "position": { "x": 6, "y": 0, "w": 3, "h": 2 },
+      "position": {
+        "x": 6,
+        "y": 0,
+        "w": 3,
+        "h": 2
+      },
       "title": "Unique Customers",
       "queryId": "sales_overview",
       "dataMapping": {
@@ -76,11 +86,15 @@
       "icon": "users",
       "color": "purple"
     },
-    
     {
       "id": "avg_order_value",
       "type": "metric-card",
-      "position": { "x": 9, "y": 0, "w": 3, "h": 2 },
+      "position": {
+        "x": 9,
+        "y": 0,
+        "w": 3,
+        "h": 2
+      },
       "title": "Avg Order Value",
       "queryId": "sales_overview",
       "dataMapping": {
@@ -93,11 +107,15 @@
       "icon": "chart",
       "color": "yellow"
     },
-    
     {
       "id": "revenue_trend",
       "type": "line-chart",
-      "position": { "x": 0, "y": 2, "w": 8, "h": 4 },
+      "position": {
+        "x": 0,
+        "y": 2,
+        "w": 8,
+        "h": 4
+      },
       "title": "Revenue Trend",
       "queryId": "sales_overview",
       "dataMapping": {
@@ -107,18 +125,24 @@
       "chartOptions": {
         "smooth": true,
         "showArea": true,
-        "colors": ["#3b82f6"],
+        "colors": [
+          "#3b82f6"
+        ],
         "yAxis": {
           "format": "currency",
           "currency": "USD"
         }
       }
     },
-    
     {
       "id": "revenue_by_region",
       "type": "bar-chart",
-      "position": { "x": 8, "y": 2, "w": 4, "h": 4 },
+      "position": {
+        "x": 8,
+        "y": 2,
+        "w": 4,
+        "h": 4
+      },
       "title": "Revenue by Region",
       "queryId": "revenue_by_region",
       "dataMapping": {
@@ -126,14 +150,20 @@
         "y": "total_revenue"
       },
       "chartOptions": {
-        "colors": ["#10b981"]
+        "colors": [
+          "#10b981"
+        ]
       }
     },
-    
     {
       "id": "top_products",
       "type": "data-table",
-      "position": { "x": 0, "y": 6, "w": 12, "h": 4 },
+      "position": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 4
+      },
       "title": "Top Products",
       "queryId": "top_products",
       "columns": [
@@ -170,6 +200,38 @@
       "options": {
         "pageSize": 10,
         "exportable": true
+      }
+    },
+    {
+      "id": "bar_chart_b3e8b8a0",
+      "type": "bar-chart",
+      "title": "Sales by Region",
+      "queryId": "revenue_by_region",
+      "position": {
+        "x": 0,
+        "y": 2,
+        "w": 6,
+        "h": 4
+      },
+      "dataMapping": {
+        "x": "region",
+        "y": "total_revenue"
+      }
+    },
+    {
+      "id": "pie_chart_487f2d76",
+      "type": "pie-chart",
+      "title": "Top Products by Revenue",
+      "queryId": "top_products",
+      "position": {
+        "x": 6,
+        "y": 2,
+        "w": 6,
+        "h": 4
+      },
+      "dataMapping": {
+        "name": "product_name",
+        "value": "total_revenue"
       }
     }
   ]

@@ -1,0 +1,5 @@
+queries:
+  simple_test:
+    description: "Simple test query"
+    sql: "SELECT 1 as test"
+    cache_ttl: 300

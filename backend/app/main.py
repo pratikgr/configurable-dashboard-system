@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.endpoints import query, dashboards, health
+from app.api.endpoints import query, dashboards, health, ai  # ← ai added
 
 
 @asynccontextmanager
@@ -20,6 +20,15 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     print("✅ Database initialized")
     
+    # Check AI configuration
+    if settings.AZURE_OPENAI_ENDPOINT and settings.AZURE_OPENAI_DEPLOYMENT:
+        auth_method = "API Key" if settings.AZURE_OPENAI_API_KEY else "Managed Identity"
+        print(f"✅ AI service configured ({auth_method})")
+        print(f"   Endpoint: {settings.AZURE_OPENAI_ENDPOINT}")
+        print(f"   Deployment: {settings.AZURE_OPENAI_DEPLOYMENT}")
+    else:
+        print("⚠️  AI service not configured - set AZURE_OPENAI_* environment variables")
+    
     yield
     
     # Shutdown
@@ -30,8 +39,8 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Configurable Dashboard API",
-    description="Universal dashboard system with configuration-driven approach",
-    version="1.0.0",
+    description="Universal dashboard system with AI-powered natural language interface",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -48,6 +57,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(query.router, prefix="/api", tags=["queries"])
 app.include_router(dashboards.router, prefix="/api", tags=["dashboards"])
+app.include_router(ai.router, prefix="/api", tags=["ai"])  # ← NEW: AI router
 
 
 @app.get("/")
@@ -55,8 +65,15 @@ async def root():
     """Root endpoint"""
     return {
         "message": "Configurable Dashboard API",
-        "version": "1.0.0",
-        "docs": "/docs"
+        "version": "2.0.0",
+        "features": [
+            "Configuration-driven dashboards",
+            "5 widget types (line, bar, pie, table, metric)",
+            "AI-powered natural language interface",
+            "Dual-mode: Dashboard builder + Data analyst"
+        ],
+        "docs": "/docs",
+        "ai_status": "/api/ai/status"
     }
 
 

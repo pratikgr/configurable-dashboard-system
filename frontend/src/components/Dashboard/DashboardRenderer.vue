@@ -145,16 +145,41 @@
         <p class="mt-4 text-gray-600">Loading dashboard...</p>
       </div>
     </div>
+
+    <!-- Save Widget Banner (AI Integration) -->
+    <transition name="fade">
+      <div v-if="showSaveBanner" class="save-widget-banner">
+        <div class="banner-content">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <div class="banner-text">
+            <strong>New widget added</strong>
+            <span>Save to make it permanent on this dashboard</span>
+          </div>
+        </div>
+        <div class="banner-actions">
+          <button @click="discardPendingWidget" class="banner-btn secondary">
+            Discard
+          </button>
+          <button @click="savePendingWidget" class="banner-btn primary">
+            Save Widget
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { GridStack } from 'gridstack'
 import 'gridstack/dist/gridstack.min.css'
 import { useQueryExecutor } from '@/composables/useQueryExecutor'
 import { getWidgetComponent } from '@/utils/widgetRegistry'
 import { transformData } from '@/utils/dataTransformers'
+import { useDashboardStore } from '@/stores/useDashboardStore'
+import axios from '@/plugins/axios'
 
 const props = defineProps({
   dashboardId: {
@@ -172,12 +197,20 @@ const widgetRenderKey = ref({})
 const editMode = ref(false)
 const gridContainer = ref(null)
 
+// AI Integration
+const dashboardStore = useDashboardStore()
+const showSaveBanner = ref(false)
+
 let grid = null
 
 const { executeQuery } = useQueryExecutor()
 
 onMounted(async () => {
   await loadDashboardConfig()
+  
+  // Set dashboard context for AI
+  dashboardStore.setCurrentDashboard(props.dashboardId)
+  
   initializeFilters()
   await nextTick()
   await nextTick() // Double nextTick for GridStack
@@ -192,6 +225,123 @@ onUnmounted(() => {
     grid.destroy(false)
   }
 })
+
+// ══════════════════════════════════════════════════════════════
+// AI Integration: Watch for Pending Widget
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Watch for pending widget from AI and add it to the grid as preview
+ */
+watch(() => dashboardStore.pendingWidget, async (widget) => {
+  if (!widget || !grid) return
+  
+  console.log('Pending widget received:', widget)
+  
+  // Assign next available position if not already assigned
+  if (!widget.position || widget.position.y === 0) {
+    widget.position = getNextAvailablePosition(widget)
+  }
+  
+  // Add widget to config (will render via v-for)
+  config.value.widgets.push(widget)
+  
+  await nextTick()
+  
+  // Tell GridStack about the new item
+  const widgetElement = document.querySelector(`[gs-id="${widget.id}"]`)
+  if (widgetElement && grid) {
+    grid.makeWidget(widgetElement)
+    
+    // Add preview styling
+    widgetElement.classList.add('pending-widget-preview')
+  }
+  
+  // Load data for the widget
+  await loadWidgetData(widget.id)
+  
+  // Show save banner
+  showSaveBanner.value = true
+  
+  // Scroll to the new widget
+  widgetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}, { deep: true })
+
+/**
+ * Get next available position on the grid
+ */
+function getNextAvailablePosition(widget) {
+  if (!config.value.widgets.length) {
+    return { x: 0, y: 0, w: widget.position?.w || 6, h: widget.position?.h || 4 }
+  }
+  
+  // Find the maximum Y position + height
+  const maxY = Math.max(...config.value.widgets.map(w => {
+    const pos = w.position || { y: 0, h: 4 }
+    return (pos.y || 0) + (pos.h || 4)
+  }))
+  
+  return {
+    x: 0,
+    y: maxY,
+    w: widget.position?.w || 6,
+    h: widget.position?.h || 4
+  }
+}
+
+/**
+ * Save the pending widget permanently
+ */
+async function savePendingWidget() {
+  const widget = dashboardStore.pendingWidget
+  if (!widget) return
+  
+  try {
+    // Call API - axios already has baseURL configured
+    await axios.post(`/api/dashboard/${props.dashboardId}/widget`, widget)
+    
+    // Remove preview styling
+    const widgetElement = document.querySelector(`[gs-id="${widget.id}"]`)
+    widgetElement?.classList.remove('pending-widget-preview')
+    
+    // Clear from store
+    dashboardStore.confirmPendingWidget()
+    showSaveBanner.value = false
+    
+    console.log('Widget saved successfully')
+  } catch (error) {
+    console.error('Failed to save widget:', error)
+    alert('Failed to save widget. Please try again.')
+  }
+}
+
+/**
+ * Discard the pending widget
+ */
+function discardPendingWidget() {
+  const widget = dashboardStore.pendingWidget
+  if (!widget) return
+  
+  // Remove from config
+  const index = config.value.widgets.findIndex(w => w.id === widget.id)
+  if (index !== -1) {
+    config.value.widgets.splice(index, 1)
+  }
+  
+  // Clear from store
+  dashboardStore.clearPendingWidget()
+  showSaveBanner.value = false
+  
+  // Remove from GridStack
+  const widgetElement = document.querySelector(`[gs-id="${widget.id}"]`)
+  if (widgetElement && grid) {
+    grid.removeWidget(widgetElement)
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Original Functions
+// ══════════════════════════════════════════════════════════════
 
 const loadDashboardConfig = async () => {
   try {
@@ -379,7 +529,7 @@ const refreshAllWidgets = () => {
 }
 </script>
 
-<style>
+<style scoped>
 /* GridStack Core Styles */
 .grid-stack {
   background: transparent;
@@ -505,5 +655,138 @@ const refreshAllWidgets = () => {
 
 .btn-success:hover {
   background-color: #059669;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AI Integration Styles
+   ══════════════════════════════════════════════════════════════ */
+
+.pending-widget-preview {
+  position: relative;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.pending-widget-preview::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 3px solid #3b82f6;
+  border-radius: 0.75rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pending-widget-preview::after {
+  content: 'PREVIEW';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #3b82f6;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0 0.5rem 0 0.5rem;
+  z-index: 11;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.save-widget-banner {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 1.5rem;
+  z-index: 900;
+  max-width: calc(100vw - 4rem);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.banner-content svg {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.banner-text strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.banner-text span {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.banner-btn {
+  padding: 0.5rem 1.125rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.banner-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.banner-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+.banner-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.banner-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
 }
 </style>

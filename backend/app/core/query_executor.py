@@ -32,7 +32,7 @@ class QueryExecutor:
         
         for yaml_file in self.queries_dir.glob("*.yaml"):
             try:
-                with open(yaml_file, 'r') as f:
+                with open(yaml_file, 'r', encoding='utf-8') as f:
                     config = yaml.safe_load(f)
                     if config and 'queries' in config:
                         self.queries.update(config['queries'])
@@ -59,20 +59,31 @@ class QueryExecutor:
         """
         Resolve parameter value with smart defaults
         """
+        param_name = param_config.get('name', 'unknown')
         param_type = param_config.get('type', 'string')
         param_default = param_config.get('default')
+        
+        print(f"   📋 Resolving param '{param_name}':")
+        print(f"      Type: {param_type}")
+        print(f"      Default: {param_default}")
+        print(f"      Provided: {provided_value}")
         
         # Use provided value if available
         if provided_value is not None:
             value = provided_value
+            print(f"      ✅ Using provided value: {value}")
         elif param_default is not None:
             value = param_default
+            print(f"      ✅ Using default value: {value}")
         else:
+            print(f"      ❌ No value or default!")
             return None
         
         # Type conversion and smart defaults
         if param_type == 'date':
-            return self._resolve_date(value)
+            resolved = self._resolve_date(value)
+            print(f"      ✅ Date resolved to: {resolved}")
+            return resolved
         elif param_type == 'int':
             return int(value)
         elif param_type == 'float':
@@ -100,6 +111,7 @@ class QueryExecutor:
             '7_days_ago': now - timedelta(days=7),
             '30_days_ago': now - timedelta(days=30),
             '90_days_ago': now - timedelta(days=90),
+            '365_days_ago': now - timedelta(days=365),
             'start_of_month': now.replace(day=1),
             'start_of_year': now.replace(month=1, day=1),
         }
@@ -125,33 +137,44 @@ class QueryExecutor:
         
         Args:
             query_id: Unique query identifier
-            params: Query parameters
+            params: Query parameters (None or empty dict will use defaults)
             db: Database session
             
         Returns:
             Dictionary with query results and metadata
         """
         if query_id not in self.queries:
-            raise ValueError(f"Query '{query_id}' not found")
+            raise ValueError(f"Query '{query_id}' not found. Available queries: {', '.join(self.list_queries())}")
         
         query_config = self.queries[query_id]
         sql = query_config['sql']
         param_configs = query_config.get('parameters', [])
         
-        # Resolve all parameters
+        # Resolve all parameters with defaults
         resolved_params = {}
         for param_config in param_configs:
             param_name = param_config['name']
-            provided_value = params.get(param_name) if params else None
-            resolved_params[param_name] = self._resolve_parameter_value(
-                param_config, 
-                provided_value
-            )
+            # FIX: Check if params exists AND has the param_name key
+            provided_value = params.get(param_name) if (params and param_name in params) else None
+            
+            resolved_value = self._resolve_parameter_value(param_config, provided_value)
+            
+            # Only add non-None values
+            if resolved_value is not None:
+                resolved_params[param_name] = resolved_value
+            elif param_config.get('required'):
+                raise ValueError(
+                    f"Required parameter '{param_name}' not provided and has no default. "
+                    f"Query: {query_id}"
+                )
         
         # Execute query
         try:
             start_time = datetime.now()
-            
+                # DEBUG: Print what we're sending
+            print(f"🔍 Executing SQL with params:")
+            print(f"   SQL has placeholders: {':' in sql}")
+            print(f"   Resolved params: {resolved_params}")
             result = await db.execute(
                 text(sql),
                 resolved_params

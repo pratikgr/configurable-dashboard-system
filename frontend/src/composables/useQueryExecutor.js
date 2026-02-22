@@ -3,9 +3,7 @@
  * Provides methods to execute queries from the backend
  */
 import { ref } from 'vue'
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+import axios from '@/plugins/axios'
 
 export function useQueryExecutor() {
   const loading = ref(false)
@@ -16,7 +14,7 @@ export function useQueryExecutor() {
     error.value = null
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/query/execute`, {
+      const response = await axios.post('/api/query/execute', {
         query_id: queryId,
         parameters: parameters
       })
@@ -32,7 +30,7 @@ export function useQueryExecutor() {
 
   const listQueries = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/query/list`)
+      const response = await axios.get('/api/query/list')
       return response.data
     } catch (err) {
       error.value = err.response?.data?.detail || err.message
@@ -42,7 +40,7 @@ export function useQueryExecutor() {
 
   const getQueryInfo = async (queryId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/query/${queryId}`)
+      const response = await axios.get(`/api/query/${queryId}`)
       return response.data
     } catch (err) {
       error.value = err.response?.data?.detail || err.message
