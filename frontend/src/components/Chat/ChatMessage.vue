@@ -1,9 +1,13 @@
 <template>
   <div class="chat-message" :class="messageClass">
     <div class="message-bubble">
-      <div class="message-content" v-html="formattedContent"></div>
+      <!-- Simple: Just display AI's text with pre-wrap -->
+      <div class="message-content">{{ message.content }}</div>
+      
       <span v-if="isStreaming" class="streaming-cursor">▊</span>
+      
       <div class="message-timestamp">{{ formattedTime }}</div>
+      
       <div v-if="message.hasWidget || message.hasData" class="message-badges">
         <span v-if="message.hasWidget" class="badge badge-widget">Widget</span>
         <span v-if="message.hasData" class="badge badge-data">Data</span>
@@ -29,78 +33,6 @@ const props = defineProps({
 const messageClass = computed(() => {
   return props.message.role === 'user' ? 'message-user' : 'message-assistant'
 })
-
-const formattedContent = computed(() => {
-  let text = props.message.content || ''
-  
-  // === AGGRESSIVE CLEANING ===
-  
-  // Step 1: Remove bullet points before numbered items
-  // Matches: "* 1." or "- 1." or "• 1." → "1."
-  text = text.replace(/^[*\-•]\s*(\d+\.)/gm, '$1')
-  text = text.replace(/([.!?:])\s*[*\-•]\s*(\d+\.)/g, '$1\n$2')
-  
-  // Step 2: Add space after numbers if missing
-  // Matches: "1.text" → "1. text"
-  text = text.replace(/(\d+\.)([A-Za-z_])/g, '$1 $2')
-  
-  // Step 3: Force line breaks before numbered items
-  // Matches: "text1." → "text\n1."
-  text = text.replace(/([.!?:])(\d+\.)/g, '$1\n$2')
-  
-  // Step 4: Force line breaks before questions
-  text = text.replace(/([.!?])(What|How|Would|Can|Should)/g, '$1\n\n$2')
-  
-  // Step 5: Process line by line
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  let html = ''
-  let paragraphBuffer = []
-  
-  for (const line of lines) {
-    // Check if it's a numbered list item (after cleaning)
-    if (/^\d+\.\s/.test(line)) {
-      // Flush paragraph buffer
-      if (paragraphBuffer.length > 0) {
-        html += `<p>${paragraphBuffer.join(' ')}</p>`
-        paragraphBuffer = []
-      }
-      
-      // Add list item
-      const match = line.match(/^(\d+)\.\s+(.+)$/)
-      if (match) {
-        const [, num, itemText] = match
-        html += `<div class="list-item"><span class="list-number">${num}.</span><span>${formatInline(itemText)}</span></div>`
-      }
-    }
-    // Regular text
-    else {
-      paragraphBuffer.push(formatInline(line))
-    }
-  }
-  
-  // Flush remaining paragraphs
-  if (paragraphBuffer.length > 0) {
-    html += `<p>${paragraphBuffer.join(' ')}</p>`
-  }
-  
-  return html
-})
-
-function formatInline(text) {
-  // Remove any stray bullets or dashes at start of inline text
-  text = text.replace(/^[*\-•]\s+/, '')
-  
-  // Bold
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  
-  // Italic
-  text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-  
-  // Code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
-  
-  return text
-}
 
 const formattedTime = computed(() => {
   const timestamp = props.message.timestamp
@@ -143,6 +75,7 @@ const formattedTime = computed(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-bottom-right-radius: 0.25rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
 }
 
 .message-assistant .message-bubble {
@@ -150,59 +83,15 @@ const formattedTime = computed(() => {
   color: #1f2937;
   border: 1px solid #e5e7eb;
   border-bottom-left-radius: 0.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .message-content {
   font-size: 15px;
   line-height: 1.6;
-}
-
-.message-content p {
-  margin: 0 0 12px 0;
-}
-
-.message-content p:last-child {
-  margin-bottom: 0;
-}
-
-.list-item {
-  display: flex;
-  gap: 8px;
-  margin: 6px 0;
-  line-height: 1.5;
-}
-
-.list-item .list-number {
-  font-weight: 600;
-  color: #667eea;
-  min-width: 24px;
-  flex-shrink: 0;
-}
-
-.message-user .list-item .list-number {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.message-content strong {
-  font-weight: 600;
-}
-
-.message-content em {
-  font-style: italic;
-}
-
-.message-content code {
-  background: rgba(0, 0, 0, 0.05);
-  color: #e83e8c;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.9em;
-}
-
-.message-user code {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  white-space: pre-wrap; /* CRITICAL: Preserves AI's line breaks */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .streaming-cursor {
@@ -212,6 +101,7 @@ const formattedTime = computed(() => {
   background: currentColor;
   margin-left: 2px;
   animation: blink 1s infinite;
+  vertical-align: text-bottom;
 }
 
 @keyframes blink {
@@ -223,6 +113,7 @@ const formattedTime = computed(() => {
   font-size: 11px;
   color: #999;
   margin-top: 6px;
+  font-weight: 500;
 }
 
 .message-user .message-timestamp {

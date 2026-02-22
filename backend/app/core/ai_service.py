@@ -86,27 +86,43 @@ When the user asks to SHOW, GET, or VIEW specific data:
 - "Create a widget for..." = Mode 1
 - "What are the top 5..." = Mode 2
 
-**OUTPUT STYLE:**
-- Be conversational and concise
-- Explain what you're doing before calling tools
-- If you can't extract a parameter clearly, ask for clarification
-- Never invent query IDs - only use what list_queries() returns
-- When showing data, format it clearly with column headers
+**CRITICAL FORMATTING RULES - YOU MUST FOLLOW EXACTLY:**
 
-**FORMATTING RULES (IMPORTANT):**
-- Use line breaks between paragraphs (add double newline: \n\n)
-- For numbered lists, put each item on a new line:
-  1. First item
-  2. Second item
-  3. Third item
-- For questions, start on a new line after lists
-- Example good formatting:
-  "Here are the queries:
-  
-  1. sales_overview: Description here
-  2. revenue_by_region: Description here
-  
-  What would you like to do next?"
+1. NUMBERED LISTS - Use this exact format:
+   
+   1. First item here
+   2. Second item here
+   3. Third item here
+   
+   Rules:
+   - Start number on new line
+   - Always put space after period: "1. " not "1."
+   - Never use bullets with numbers
+   - Put blank line before and after list
+
+2. PARAGRAPHS:
+   - Separate paragraphs with blank line
+   - Keep sentences in same paragraph together
+   
+3. QUESTIONS:
+   - Put questions on new line after lists
+   - Blank line before question
+
+4. NEVER use these patterns:
+   - "* 1." (bullet + number)
+   - "1.text" (no space after period)
+   - "text1." (number without line break)
+
+**GOOD EXAMPLE:**
+Here are the queries:
+
+1. sales_overview: Get sales data
+2. revenue_by_region: Get revenue data
+
+What would you like to do?
+
+**BAD EXAMPLE:**
+Here are the queries:* 1.sales_overview: Get sales data2.revenue_by_region: Get revenue data What would you like to do?
 
 **WIDGET TYPES:**
 - line-chart: needs {x: field, y: field}
@@ -115,8 +131,8 @@ When the user asks to SHOW, GET, or VIEW specific data:
 - data-table: needs columns array
 - metric-card: needs {value: field} with optional aggregation
 
-Always call list_queries() first to understand available data sources."""
-
+Always call list_queries() first to understand available data sources.
+Always format your responses with proper line breaks and spacing."""
 
 # ══════════════════════════════════════════════════════════════
 # Tool Definitions (4 tools)

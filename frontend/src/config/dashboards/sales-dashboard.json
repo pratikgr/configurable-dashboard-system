@@ -217,22 +217,6 @@
         "x": "region",
         "y": "total_revenue"
       }
-    },
-    {
-      "id": "pie_chart_487f2d76",
-      "type": "pie-chart",
-      "title": "Top Products by Revenue",
-      "queryId": "top_products",
-      "position": {
-        "x": 6,
-        "y": 2,
-        "w": 6,
-        "h": 4
-      },
-      "dataMapping": {
-        "name": "product_name",
-        "value": "total_revenue"
-      }
     }
   ]
 }

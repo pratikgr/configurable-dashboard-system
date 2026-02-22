@@ -102,24 +102,41 @@
           <div class="card h-full flex flex-col">
             <!-- Widget Header -->
             <div class="widget-header flex justify-between items-center mb-2 p-2 rounded flex-shrink-0" 
-                 :class="{ 'cursor-move bg-gray-50': editMode }">
+                :class="{ 'cursor-move bg-gray-50': editMode }">
               <div class="flex items-center gap-2">
                 <svg v-if="editMode" class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
                 <h3 class="text-lg font-semibold text-gray-800">{{ widget.title }}</h3>
               </div>
-              <button 
-                @click.stop="refreshWidget(widget.id)"
-                class="text-gray-400 hover:text-gray-600 transition-colors"
-                :disabled="widgetLoading[widget.id]"
-              >
-                <svg class="w-5 h-5" :class="{ 'animate-spin': widgetLoading[widget.id] }" 
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
+              
+              <div class="flex items-center gap-2">
+                <!-- Refresh button -->
+                <button 
+                  @click.stop="refreshWidget(widget.id)"
+                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                  :disabled="widgetLoading[widget.id]"
+                >
+                  <svg class="w-5 h-5" :class="{ 'animate-spin': widgetLoading[widget.id] }" 
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                
+                <!-- Delete button (only in edit mode) -->
+                <button 
+                  v-if="editMode"
+                  @click.stop="deleteWidget(widget.id)"
+                  class="text-red-400 hover:text-red-600 transition-colors"
+                  title="Delete widget"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <!-- Widget Content -->
@@ -315,6 +332,33 @@ async function savePendingWidget() {
   }
 }
 
+async function deleteWidget(widgetId) {
+  if (!confirm('Are you sure you want to delete this widget?')) {
+    return
+  }
+  
+  try {
+    // Call backend to delete
+    await axios.delete(`/api/dashboard/${props.dashboardId}/widget/${widgetId}`)
+    
+    // Remove from local config
+    const index = config.value.widgets.findIndex(w => w.id === widgetId)
+    if (index !== -1) {
+      config.value.widgets.splice(index, 1)
+    }
+    
+    // Remove from GridStack
+    const widgetElement = document.querySelector(`[gs-id="${widgetId}"]`)
+    if (widgetElement && grid) {
+      grid.removeWidget(widgetElement)
+    }
+    
+    console.log('Widget deleted successfully')
+  } catch (error) {
+    console.error('Failed to delete widget:', error)
+    alert('Failed to delete widget. Please try again.')
+  }
+}
 /**
  * Discard the pending widget
  */

@@ -193,3 +193,30 @@ async def add_widget_to_dashboard(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to save widget: {str(e)}")
+    
+@router.delete("/dashboard/{dashboard_id}/widget/{widget_id}")
+async def delete_widget_from_dashboard(
+    dashboard_id: str,
+    widget_id: str
+):
+    """Delete a widget from a dashboard"""
+    try:
+        dashboard_file = dashboard_service.get_dashboard_file_path(dashboard_id)
+        
+        with open(dashboard_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Remove widget
+        if 'widgets' in config:
+            config['widgets'] = [w for w in config['widgets'] if w.get('id') != widget_id]
+        
+        # Save
+        with open(dashboard_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+        
+        return {"success": True, "message": "Widget deleted successfully"}
+    
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete widget: {str(e)}")
