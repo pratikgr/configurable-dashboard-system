@@ -1,0 +1,172 @@
+queries:
+  customer_lifetime_value:
+    description: "Calculate customer lifetime value (CLV) by total spending"
+    sql: |
+      SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.region,
+        COUNT(DISTINCT o.order_id) as total_orders,
+        SUM(o.amount) as lifetime_value,
+        AVG(o.amount) as avg_order_value,
+        MIN(o.order_date) as first_order_date,
+        MAX(o.order_date) as last_order_date,
+        CAST((julianday(:end_date) - julianday(MAX(o.order_date))) AS INTEGER) as days_since_last_order
+      FROM customers c
+      LEFT JOIN orders o ON c.customer_id = o.customer_id
+      WHERE o.status = 'completed'
+        AND o.order_date >= :start_date
+        AND o.order_date <= :end_date
+      GROUP BY c.customer_id, c.customer_name, c.region
+      ORDER BY lifetime_value DESC
+      LIMIT :limit
+    parameters:
+      - name: start_date
+        type: date
+        default: "365_days_ago"
+      - name: end_date
+        type: date
+        default: "today"
+      - name: limit
+        type: int
+        default: 50
+    cache_ttl: 600
+
+  customer_retention_rate:
+    description: "Calculate customer retention metrics by month"
+    sql: |
+      WITH monthly_customers AS (
+        SELECT 
+          strftime('%Y-%m', o.order_date) as month,
+          COUNT(DISTINCT o.customer_id) as active_customers
+        FROM orders o
+        WHERE o.status = 'completed'
+          AND o.order_date >= :start_date
+        GROUP BY strftime('%Y-%m', o.order_date)
+      ),
+      repeat_customers AS (
+        SELECT 
+          strftime('%Y-%m', o2.order_date) as month,
+          COUNT(DISTINCT o2.customer_id) as repeat_count
+        FROM orders o1
+        JOIN orders o2 ON o1.customer_id = o2.customer_id
+        WHERE o1.status = 'completed'
+          AND o2.status = 'completed'
+          AND o2.order_date > o1.order_date
+          AND strftime('%Y-%m', o1.order_date) = strftime('%Y-%m', date(o2.order_date, '-1 month'))
+          AND o2.order_date >= :start_date
+        GROUP BY strftime('%Y-%m', o2.order_date)
+      )
+      SELECT 
+        mc.month,
+        mc.active_customers,
+        COALESCE(rc.repeat_count, 0) as returning_customers,
+        ROUND(CAST(COALESCE(rc.repeat_count, 0) AS FLOAT) / mc.active_customers * 100, 2) as retention_rate_percent
+      FROM monthly_customers mc
+      LEFT JOIN repeat_customers rc ON mc.month = rc.month
+      ORDER BY mc.month DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "180_days_ago"
+    cache_ttl: 3600
+
+  customer_satisfaction_trend:
+    description: "Track customer satisfaction scores over time"
+    sql: |
+      SELECT 
+        survey_date,
+        AVG(nps_score) as avg_nps,
+        AVG(satisfaction_score) as avg_satisfaction,
+        COUNT(*) as survey_count,
+        SUM(CASE WHEN nps_score >= 9 THEN 1 ELSE 0 END) as promoters,
+        SUM(CASE WHEN nps_score <= 6 THEN 1 ELSE 0 END) as detractors,
+        ROUND(
+          (CAST(SUM(CASE WHEN nps_score >= 9 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) * 100) -
+          (CAST(SUM(CASE WHEN nps_score <= 6 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) * 100),
+          2
+        ) as nps_final_score
+      FROM customer_satisfaction
+      WHERE survey_date >= :start_date
+      GROUP BY survey_date
+      ORDER BY survey_date ASC
+    parameters:
+      - name: start_date
+        type: date
+        default: "90_days_ago"
+    cache_ttl: 1800
+
+  customer_interaction_summary:
+    description: "Summary of customer interactions by type and outcome"
+    sql: |
+      SELECT 
+        interaction_type,
+        outcome,
+        COUNT(*) as interaction_count,
+        AVG(duration_minutes) as avg_duration,
+        SUM(duration_minutes) as total_duration
+      FROM customer_interactions
+      WHERE interaction_date >= :start_date
+        AND interaction_date <= :end_date
+      GROUP BY interaction_type, outcome
+      ORDER BY interaction_count DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "30_days_ago"
+      - name: end_date
+        type: date
+        default: "today"
+    cache_ttl: 600
+
+  top_customers_by_region:
+    description: "Identify top-spending customers segmented by region"
+    sql: |
+      SELECT 
+        c.region,
+        c.customer_name,
+        COUNT(DISTINCT o.order_id) as order_count,
+        SUM(o.amount) as total_spent,
+        AVG(o.amount) as avg_order_amount,
+        MAX(o.order_date) as last_order_date
+      FROM customers c
+      JOIN orders o ON c.customer_id = o.customer_id
+      WHERE o.status = 'completed'
+        AND o.order_date >= :start_date
+      GROUP BY c.region, c.customer_name
+      ORDER BY c.region, total_spent DESC
+    parameters:
+      - name: start_date
+        type: date
+        default: "90_days_ago"
+    cache_ttl: 900
+
+  customer_churn_risk:
+    description: "Identify customers at risk of churning based on inactivity"
+    sql: |
+      SELECT 
+        c.customer_id,
+        c.customer_name,
+        c.email,
+        c.region,
+        MAX(o.order_date) as last_order_date,
+        CAST((julianday('now') - julianday(MAX(o.order_date))) AS INTEGER) as days_inactive,
+        COUNT(o.order_id) as total_orders,
+        SUM(o.amount) as lifetime_value,
+        CASE 
+          WHEN CAST((julianday('now') - julianday(MAX(o.order_date))) AS INTEGER) > 60 THEN 'High'
+          WHEN CAST((julianday('now') - julianday(MAX(o.order_date))) AS INTEGER) > 30 THEN 'Medium'
+          WHEN CAST((julianday('now') - julianday(MAX(o.order_date))) AS INTEGER) > 14 THEN 'Low'
+          ELSE 'Active'
+        END as churn_risk
+      FROM customers c
+      LEFT JOIN orders o ON c.customer_id = o.customer_id AND o.status = 'completed'
+      GROUP BY c.customer_id, c.customer_name, c.email, c.region
+      HAVING days_inactive >= :min_inactive_days OR total_orders = 0
+      ORDER BY days_inactive DESC, lifetime_value DESC
+      LIMIT 50
+    parameters:
+      - name: min_inactive_days
+        type: int
+        default: 14
+    cache_ttl: 3600

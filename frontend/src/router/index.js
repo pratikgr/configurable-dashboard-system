@@ -13,6 +13,11 @@ const routes = [
     name: 'dashboard',
     component: DashboardRenderer,
     props: true
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/components/Admin/AdminPanel.vue')
   }
 ]
 

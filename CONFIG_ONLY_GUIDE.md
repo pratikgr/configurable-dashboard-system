@@ -10,13 +10,16 @@
 ## 📋 Answer to Your Questions
 
 ### **1. Yes, PieChart needs same fix**
+
 ✅ Fixed PieChart.vue included in package
 
 ### **2. Top Products Query Issue**
+
 Problem: `order_items` table was empty in SQLite
 ✅ Fixed init_sqlite.sql - properly generates order_items
 
 ### **3. Universal Chart Type Conversion**
+
 ✅ Enhanced dataTransformers.js - converts ANY chart to ANY chart via config only!
 
 ---
@@ -24,6 +27,17 @@ Problem: `order_items` table was empty in SQLite
 ## 🚀 How to Add New Dashboard (5 Minutes - No Code!)
 
 ### **Step 1: Create Query (2 min)**
+
+Assume there are data and tables exist.
+Example to load sample data:
+
+# Initialize main database
+
+python -c "import sqlite3; conn = sqlite3.connect('backend/dashboard.db'); conn.executescript(open('backend/init_sqlite.sql').read()); conn.commit(); conn.close(); print('✅ Main DB initialized!')"
+
+# Add customer analytics
+
+python -c "import sqlite3; conn = sqlite3.connect('backend/dashboard.db'); conn.executescript(open('customer_analytics_data.sql').read()); conn.commit(); conn.close(); print('✅ Customer analytics added!')"
 
 File: `backend/queries/inventory.yaml`
 
@@ -79,11 +93,13 @@ Navigate to: `http://localhost:5173/dashboard/inventory`
 ### **Example: Same Query, 4 Different Visualizations**
 
 Query returns:
+
 ```sql
 SELECT region, revenue FROM sales
 ```
 
 ### **As Pie Chart:**
+
 ```json
 {
   "type": "pie-chart",
@@ -95,6 +111,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **As Bar Chart:**
+
 ```json
 {
   "type": "bar-chart",
@@ -106,6 +123,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **As Line Chart:**
+
 ```json
 {
   "type": "line-chart",
@@ -117,12 +135,17 @@ SELECT region, revenue FROM sales
 ```
 
 ### **As Data Table:**
+
 ```json
 {
   "type": "data-table",
   "columns": [
     { "field": "region", "header": "Region" },
-    { "field": "revenue", "header": "Revenue", "format": { "type": "currency" } }
+    {
+      "field": "revenue",
+      "header": "Revenue",
+      "format": { "type": "currency" }
+    }
   ]
 }
 ```
@@ -134,6 +157,7 @@ SELECT region, revenue FROM sales
 ## 🎨 All Supported Widget Types
 
 ### **1. line-chart**
+
 ```json
 {
   "type": "line-chart",
@@ -150,6 +174,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **2. bar-chart**
+
 ```json
 {
   "type": "bar-chart",
@@ -164,6 +189,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **3. pie-chart**
+
 ```json
 {
   "type": "pie-chart",
@@ -175,6 +201,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **4. data-table**
+
 ```json
 {
   "type": "data-table",
@@ -189,6 +216,7 @@ SELECT region, revenue FROM sales
 ```
 
 ### **5. metric-card**
+
 ```json
 {
   "type": "metric-card",
@@ -210,6 +238,7 @@ SELECT region, revenue FROM sales
 The system automatically converts between formats:
 
 ### **Table → Chart**
+
 ```json
 // Query returns: [{product: "A", sales: 100}, {product: "B", sales: 200}]
 
@@ -221,6 +250,7 @@ The system automatically converts between formats:
 ```
 
 ### **Chart → Pie**
+
 ```json
 // Same query data
 
@@ -232,6 +262,7 @@ The system automatically converts between formats:
 ```
 
 ### **Pie → Table**
+
 ```json
 // Same query data
 
@@ -250,6 +281,7 @@ The system automatically converts between formats:
 ## 📊 Real Example: Revenue Dashboard 3 Ways
 
 ### **Query (One Query for All):**
+
 ```yaml
 queries:
   revenue_by_category:
@@ -260,34 +292,41 @@ queries:
 ```
 
 ### **Version 1: Bar Chart**
+
 ```json
 {
   "id": "revenue-bars",
   "type": "bar-chart",
   "queryId": "revenue_by_category",
-  "dataMapping": {"x": "category", "y": "revenue"}
+  "dataMapping": { "x": "category", "y": "revenue" }
 }
 ```
 
 ### **Version 2: Pie Chart**
+
 ```json
 {
   "id": "revenue-pie",
   "type": "pie-chart",
   "queryId": "revenue_by_category",
-  "dataMapping": {"name": "category", "value": "revenue"}
+  "dataMapping": { "name": "category", "value": "revenue" }
 }
 ```
 
 ### **Version 3: Table**
+
 ```json
 {
   "id": "revenue-table",
   "type": "data-table",
   "queryId": "revenue_by_category",
   "columns": [
-    {"field": "category", "header": "Category"},
-    {"field": "revenue", "header": "Revenue", "format": {"type": "currency"}}
+    { "field": "category", "header": "Category" },
+    {
+      "field": "revenue",
+      "header": "Revenue",
+      "format": { "type": "currency" }
+    }
   ]
 }
 ```
@@ -316,41 +355,45 @@ File: `frontend/src/config/dashboards/sales-multi.json`
     {
       "id": "total_revenue",
       "type": "metric-card",
-      "position": {"x": 0, "y": 0, "w": 3, "h": 2},
+      "position": { "x": 0, "y": 0, "w": 3, "h": 2 },
       "title": "Total Revenue",
       "queryId": "sales_overview",
-      "dataMapping": {"value": "SUM(total_revenue)"},
-      "format": {"type": "currency"},
+      "dataMapping": { "value": "SUM(total_revenue)" },
+      "format": { "type": "currency" },
       "icon": "dollar",
       "color": "green"
     },
     {
       "id": "revenue_line",
       "type": "line-chart",
-      "position": {"x": 0, "y": 2, "w": 6, "h": 4},
+      "position": { "x": 0, "y": 2, "w": 6, "h": 4 },
       "title": "Revenue Trend",
       "queryId": "sales_overview",
-      "dataMapping": {"x": "date", "y": "total_revenue"}
+      "dataMapping": { "x": "date", "y": "total_revenue" }
     },
     {
       "id": "revenue_pie",
       "type": "pie-chart",
-      "position": {"x": 6, "y": 2, "w": 6, "h": 4},
+      "position": { "x": 6, "y": 2, "w": 6, "h": 4 },
       "title": "Revenue by Region",
       "queryId": "revenue_by_region",
-      "dataMapping": {"name": "region", "value": "total_revenue"}
+      "dataMapping": { "name": "region", "value": "total_revenue" }
     },
     {
       "id": "products_table",
       "type": "data-table",
-      "position": {"x": 0, "y": 6, "w": 12, "h": 4},
+      "position": { "x": 0, "y": 6, "w": 12, "h": 4 },
       "title": "Products",
       "queryId": "top_products",
       "columns": [
-        {"field": "product_name", "header": "Product"},
-        {"field": "category", "header": "Category"},
-        {"field": "units_sold", "header": "Units"},
-        {"field": "total_revenue", "header": "Revenue", "format": {"type": "currency"}}
+        { "field": "product_name", "header": "Product" },
+        { "field": "category", "header": "Category" },
+        { "field": "units_sold", "header": "Units" },
+        {
+          "field": "total_revenue",
+          "header": "Revenue",
+          "format": { "type": "currency" }
+        }
       ]
     }
   ]
@@ -362,28 +405,33 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ## 🔧 Format Options (Config Only!)
 
 ### **Currency:**
+
 ```json
-{"format": {"type": "currency", "currency": "USD"}}
+{ "format": { "type": "currency", "currency": "USD" } }
 ```
 
 ### **Number:**
+
 ```json
-{"format": {"type": "number", "decimals": 2}}
+{ "format": { "type": "number", "decimals": 2 } }
 ```
 
 ### **Percent:**
+
 ```json
-{"format": {"type": "percent", "decimals": 1}}
+{ "format": { "type": "percent", "decimals": 1 } }
 ```
 
 ### **Date:**
+
 ```json
-{"format": {"type": "date"}}
+{ "format": { "type": "date" } }
 ```
 
 ### **Compact:**
+
 ```json
-{"format": {"type": "compact"}}  // 1000 → 1K, 1000000 → 1M
+{ "format": { "type": "compact" } } // 1000 → 1K, 1000000 → 1M
 ```
 
 ---
@@ -391,6 +439,7 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ## 🎨 Chart Styling (Config Only!)
 
 ### **Colors:**
+
 ```json
 {
   "chartOptions": {
@@ -400,6 +449,7 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ```
 
 ### **Line Chart Options:**
+
 ```json
 {
   "chartOptions": {
@@ -411,10 +461,11 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ```
 
 ### **Y-Axis Format:**
+
 ```json
 {
   "chartOptions": {
-    "yAxis": {"format": "currency"}
+    "yAxis": { "format": "currency" }
   }
 }
 ```
@@ -424,13 +475,14 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ## 📐 Widget Positioning (Config Only!)
 
 ### **Grid System (12 columns):**
+
 ```json
 {
   "position": {
-    "x": 0,    // Column (0-11)
-    "y": 0,    // Row
-    "w": 6,    // Width (1-12 columns)
-    "h": 4     // Height (in rows)
+    "x": 0, // Column (0-11)
+    "y": 0, // Row
+    "w": 6, // Width (1-12 columns)
+    "h": 4 // Height (in rows)
   }
 }
 ```
@@ -438,18 +490,21 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ### **Common Layouts:**
 
 **Full Width:**
+
 ```json
-{"x": 0, "y": 0, "w": 12, "h": 4}
+{ "x": 0, "y": 0, "w": 12, "h": 4 }
 ```
 
 **Half Width:**
+
 ```json
-{"x": 0, "y": 0, "w": 6, "h": 4}
+{ "x": 0, "y": 0, "w": 6, "h": 4 }
 ```
 
 **Quarter Width:**
+
 ```json
-{"x": 0, "y": 0, "w": 3, "h": 2}
+{ "x": 0, "y": 0, "w": 3, "h": 2 }
 ```
 
 ---
@@ -457,6 +512,7 @@ File: `frontend/src/config/dashboards/sales-multi.json`
 ## 🔍 Query Examples
 
 ### **Simple Query:**
+
 ```yaml
 queries:
   users:
@@ -464,6 +520,7 @@ queries:
 ```
 
 ### **With Parameters:**
+
 ```yaml
 queries:
   filtered_users:
@@ -477,6 +534,7 @@ queries:
 ```
 
 ### **Aggregated:**
+
 ```yaml
 queries:
   summary:

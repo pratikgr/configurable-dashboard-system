@@ -201,22 +201,6 @@
         "pageSize": 10,
         "exportable": true
       }
-    },
-    {
-      "id": "bar_chart_b3e8b8a0",
-      "type": "bar-chart",
-      "title": "Sales by Region",
-      "queryId": "revenue_by_region",
-      "position": {
-        "x": 0,
-        "y": 2,
-        "w": 6,
-        "h": 4
-      },
-      "dataMapping": {
-        "x": "region",
-        "y": "total_revenue"
-      }
     }
   ]
 }

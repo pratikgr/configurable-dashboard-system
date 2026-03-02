@@ -1,0 +1,330 @@
+{
+  "id": "customer-analytics-dashboard",
+  "title": "Customer Analytics Dashboard",
+  "description": "Comprehensive customer insights including CLV, retention, satisfaction, and churn risk",
+  "globalFilters": [
+    {
+      "id": "start_date",
+      "type": "daterange",
+      "label": "Start Date",
+      "default": "2025-11-01",
+      "applyTo": "*"
+    },
+    {
+      "id": "end_date",
+      "type": "daterange",
+      "label": "End Date",
+      "default": "2026-02-28",
+      "applyTo": "*"
+    }
+  ],
+  "widgets": [
+    {
+      "id": "clv-chart",
+      "type": "bar-chart",
+      "title": "Top 10 Customers by Lifetime Value",
+      "queryId": "customer_lifetime_value",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "parameters": {
+        "limit": 10
+      },
+      "dataMapping": {
+        "x": "customer_name",
+        "y": "lifetime_value"
+      },
+      "chartOptions": {
+        "colors": ["#667eea"],
+        "yAxisLabel": "Lifetime Value ($)",
+        "xAxisLabel": "Customer"
+      }
+    },
+    {
+      "id": "retention-trend",
+      "type": "line-chart",
+      "title": "Customer Retention Rate Trend",
+      "queryId": "customer_retention_rate",
+      "position": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "dataMapping": {
+        "x": "month",
+        "y": "retention_rate_percent"
+      },
+      "chartOptions": {
+        "colors": ["#10b981"],
+        "yAxisLabel": "Retention Rate (%)",
+        "xAxisLabel": "Month",
+        "smooth": true
+      }
+    },
+    {
+      "id": "satisfaction-scores",
+      "type": "line-chart",
+      "title": "Customer Satisfaction & NPS Trend",
+      "queryId": "customer_satisfaction_trend",
+      "position": {
+        "x": 0,
+        "y": 5,
+        "w": 8,
+        "h": 4
+      },
+      "dataMapping": {
+        "x": "survey_date",
+        "y": "avg_satisfaction",
+        "series": [
+          {
+            "name": "Satisfaction Score",
+            "field": "avg_satisfaction"
+          },
+          {
+            "name": "NPS Score",
+            "field": "avg_nps"
+          }
+        ]
+      },
+      "chartOptions": {
+        "colors": ["#3b82f6", "#f59e0b"],
+        "yAxisLabel": "Score",
+        "xAxisLabel": "Date",
+        "smooth": true
+      }
+    },
+    {
+      "id": "nps-metric",
+      "type": "metric-card",
+      "title": "Net Promoter Score",
+      "queryId": "customer_satisfaction_trend",
+      "position": {
+        "x": 8,
+        "y": 5,
+        "w": 2,
+        "h": 2
+      },
+      "dataMapping": {
+        "value": "nps_final_score"
+      },
+      "chartOptions": {
+        "aggregation": "latest",
+        "format": "number",
+        "suffix": "",
+        "color": "#10b981",
+        "icon": "trending-up"
+      }
+    },
+    {
+      "id": "survey-count",
+      "type": "metric-card",
+      "title": "Total Surveys",
+      "queryId": "customer_satisfaction_trend",
+      "position": {
+        "x": 10,
+        "y": 5,
+        "w": 2,
+        "h": 2
+      },
+      "dataMapping": {
+        "value": "survey_count"
+      },
+      "chartOptions": {
+        "aggregation": "sum",
+        "format": "number",
+        "color": "#3b82f6",
+        "icon": "clipboard-check"
+      }
+    },
+    {
+      "id": "promoters-metric",
+      "type": "metric-card",
+      "title": "Promoters",
+      "queryId": "customer_satisfaction_trend",
+      "position": {
+        "x": 8,
+        "y": 7,
+        "w": 2,
+        "h": 2
+      },
+      "dataMapping": {
+        "value": "promoters"
+      },
+      "chartOptions": {
+        "aggregation": "sum",
+        "format": "number",
+        "color": "#10b981",
+        "icon": "thumbs-up"
+      }
+    },
+    {
+      "id": "detractors-metric",
+      "type": "metric-card",
+      "title": "Detractors",
+      "queryId": "customer_satisfaction_trend",
+      "position": {
+        "x": 10,
+        "y": 7,
+        "w": 2,
+        "h": 2
+      },
+      "dataMapping": {
+        "value": "detractors"
+      },
+      "chartOptions": {
+        "aggregation": "sum",
+        "format": "number",
+        "color": "#ef4444",
+        "icon": "thumbs-down"
+      }
+    },
+    {
+      "id": "interaction-breakdown",
+      "type": "pie-chart",
+      "title": "Interactions by Type",
+      "queryId": "customer_interaction_summary",
+      "position": {
+        "x": 0,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "dataMapping": {
+        "name": "interaction_type",
+        "value": "interaction_count"
+      },
+      "chartOptions": {
+        "colors": ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
+      }
+    },
+    {
+      "id": "regional-customers",
+      "type": "data-table",
+      "title": "Top Customers by Region",
+      "queryId": "top_customers_by_region",
+      "position": {
+        "x": 4,
+        "y": 9,
+        "w": 8,
+        "h": 4
+      },
+      "columns": [
+        {
+          "field": "region",
+          "header": "Region",
+          "sortable": true
+        },
+        {
+          "field": "customer_name",
+          "header": "Customer",
+          "sortable": true
+        },
+        {
+          "field": "order_count",
+          "header": "Orders",
+          "sortable": true,
+          "align": "right"
+        },
+        {
+          "field": "total_spent",
+          "header": "Total Spent",
+          "sortable": true,
+          "align": "right",
+          "format": {
+            "type": "currency",
+            "currency": "USD"
+          }
+        },
+        {
+          "field": "avg_order_amount",
+          "header": "Avg Order",
+          "sortable": true,
+          "align": "right",
+          "format": {
+            "type": "currency",
+            "currency": "USD"
+          }
+        },
+        {
+          "field": "last_order_date",
+          "header": "Last Order",
+          "sortable": true,
+          "format": {
+            "type": "date"
+          }
+        }
+      ]
+    },
+    {
+      "id": "churn-risk-table",
+      "type": "data-table",
+      "title": "Customers at Risk of Churning",
+      "queryId": "customer_churn_risk",
+      "position": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 5
+      },
+      "parameters": {
+        "min_inactive_days": 14
+      },
+      "columns": [
+        {
+          "field": "customer_name",
+          "header": "Customer",
+          "sortable": true
+        },
+        {
+          "field": "email",
+          "header": "Email",
+          "sortable": false
+        },
+        {
+          "field": "region",
+          "header": "Region",
+          "sortable": true
+        },
+        {
+          "field": "days_inactive",
+          "header": "Days Inactive",
+          "sortable": true,
+          "align": "right"
+        },
+        {
+          "field": "churn_risk",
+          "header": "Risk Level",
+          "sortable": true
+        },
+        {
+          "field": "total_orders",
+          "header": "Total Orders",
+          "sortable": true,
+          "align": "right"
+        },
+        {
+          "field": "lifetime_value",
+          "header": "Lifetime Value",
+          "sortable": true,
+          "align": "right",
+          "format": {
+            "type": "currency",
+            "currency": "USD"
+          }
+        },
+        {
+          "field": "last_order_date",
+          "header": "Last Order",
+          "sortable": true,
+          "format": {
+            "type": "date"
+          }
+        }
+      ]
+    }
+  ]
+}

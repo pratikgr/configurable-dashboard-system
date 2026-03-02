@@ -55,6 +55,11 @@ onMounted(async () => {
       id: 'sales-dashboard',
       title: 'Sales Analytics',
       description: 'Comprehensive overview of sales performance and key metrics'
+    },
+    {
+      'id': 'customer-analytics-dashboard',
+      'title': 'Customer Analytics Dashboard',
+      'description': 'Comprehensive customer insights including CLV, retention, satisfaction, and churn risk'
     }
   ]
 })

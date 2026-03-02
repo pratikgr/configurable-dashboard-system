@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.endpoints import query, dashboards, health, ai  # ← ai added
+from app.api.endpoints import query, dashboards, health, ai, admin  # ← ai added
 
 
 @asynccontextmanager
@@ -58,7 +58,7 @@ app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(query.router, prefix="/api", tags=["queries"])
 app.include_router(dashboards.router, prefix="/api", tags=["dashboards"])
 app.include_router(ai.router, prefix="/api", tags=["ai"])  # ← NEW: AI router
-
+app.include_router(admin.router, prefix="/api", tags=["admin"])  # ← NEW: Admin router
 
 @app.get("/")
 async def root():
